@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚔️ Homem de Fé</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e3d5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Homem de Fé">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600;700&display=swap');
+  :root{
+    --navy:#1e3d5c;--navy-light:#2d5f8a;--navy-dark:#122538;
+    --steel:#4a7fb5;--steel-light:#b8d0e8;--steel-bg:#eef3f8;
+    --amber:#c9941a;--amber-light:#f5e9c0;
+    --green:#2e7d32;--green-light:#e8f5e9;
+    --text:#1a2e42;--text-light:#4a6a88;--white:#ffffff;
+    --shadow:rgba(20,50,90,0.15);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Raleway',sans-serif;background:linear-gradient(135deg,#eef3f8 0%,#e0ecf5 50%,#eef3f8 100%);min-height:100vh;color:var(--text);}
+
+  #loading-screen{position:fixed;inset:0;background:linear-gradient(135deg,#1e3d5c,#2d5f8a);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;}
+  .loading-icon{font-size:4rem;animation:pulse-icon 1.5s ease-in-out infinite;}
+  @keyframes pulse-icon{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+  .loading-text{font-family:'Cinzel',serif;font-size:1.3rem;color:rgba(255,255,255,0.9);margin-top:16px;letter-spacing:3px;}
+
+  #login-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+  .login-card{background:var(--white);border-radius:16px;padding:50px 40px;max-width:420px;width:100%;box-shadow:0 20px 60px var(--shadow);text-align:center;position:relative;overflow:hidden;}
+  .login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--navy-dark),var(--steel),var(--amber),var(--steel),var(--navy-dark));}
+  .login-decoration{font-size:56px;margin-bottom:10px;animation:float 3s ease-in-out infinite;}
+  @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+  .login-title{font-family:'Cinzel',serif;font-size:2rem;color:var(--navy-dark);margin-bottom:6px;letter-spacing:3px;}
+  .login-subtitle{color:var(--text-light);font-size:0.88rem;margin-bottom:28px;font-style:italic;line-height:1.6;}
+  .input-group{margin-bottom:16px;text-align:left;}
+  .input-group label{display:block;font-size:0.82rem;font-weight:700;color:var(--navy);margin-bottom:6px;padding-left:4px;letter-spacing:0.5px;text-transform:uppercase;}
+  .input-group input{width:100%;padding:13px 16px;border:2px solid var(--steel-light);border-radius:10px;font-family:'Raleway',sans-serif;font-size:.95rem;color:var(--text);background:var(--steel-bg);transition:all .3s;outline:none;}
+  .input-group input:focus{border-color:var(--steel);background:white;box-shadow:0 0 0 4px rgba(74,127,181,.12);}
+  .btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,var(--navy-dark),var(--navy-light));color:white;border:none;border-radius:10px;font-family:'Raleway',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .3s;margin-top:10px;letter-spacing:1px;text-transform:uppercase;}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(30,61,92,.4);}
+  .btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+  .login-toggle{margin-top:18px;font-size:.88rem;color:var(--text-light);}
+  .login-toggle span{color:var(--navy);font-weight:700;cursor:pointer;text-decoration:underline;}
+  .login-error{background:#e8f0f8;color:var(--navy);border-left:4px solid var(--steel);padding:10px 14px;border-radius:8px;font-size:.88rem;margin-bottom:14px;display:none;}
+  .sync-badge{display:inline-flex;align-items:center;gap:6px;background:var(--steel-bg);color:var(--navy);border-radius:20px;padding:4px 12px;font-size:0.72rem;font-weight:700;margin-bottom:16px;letter-spacing:0.5px;border:1px solid var(--steel-light);}
+
+  #app{display:none;min-height:100vh;}
+  .header{background:linear-gradient(135deg,var(--navy-dark),var(--navy));padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px var(--shadow);position:sticky;top:0;z-index:100;}
+  .header-left{display:flex;align-items:center;gap:12px;}
+  .header-title{font-family:'Cinzel',serif;font-size:1.5rem;color:white;letter-spacing:3px;}
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:#4caf50;}
+  .sync-dot.syncing{background:var(--amber);animation:pulse 1s infinite;}
+  .sync-dot.error{background:#f44336;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .header-user{font-size:.82rem;color:rgba(255,255,255,0.8);display:flex;align-items:center;gap:10px;}
+  .btn-logout{background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);padding:7px 14px;border-radius:20px;font-family:'Raleway',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;}
+  .btn-logout:hover{background:rgba(255,255,255,0.25);}
+  #btn-install{display:none;background:var(--amber);color:white;border:none;padding:7px 14px;border-radius:20px;font-family:'Raleway',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;letter-spacing:0.5px;}
+
+  .nav{display:flex;gap:4px;padding:12px 20px;background:var(--navy-dark);border-bottom:2px solid var(--steel);overflow-x:auto;}
+  .nav-btn{flex-shrink:0;padding:9px 18px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:rgba(255,255,255,0.7);border-radius:6px;font-family:'Raleway',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .3s;letter-spacing:0.5px;}
+  .nav-btn.active,.nav-btn:hover{background:var(--steel);color:white;border-color:var(--steel);box-shadow:0 4px 15px rgba(74,127,181,.4);}
+  .content{padding:24px 20px;max-width:900px;margin:0 auto;}
+  .section{display:none;}.section.active{display:block;}
+  .section-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--steel-light);}
+  .section-icon{font-size:2rem;}
+  .section-title{font-family:'Cinzel',serif;font-size:1.8rem;color:var(--navy-dark);letter-spacing:2px;}
+  .section-sub{font-size:.82rem;color:var(--text-light);font-style:italic;}
+
+  .card{background:white;border-radius:12px;padding:24px;box-shadow:0 4px 20px var(--shadow);margin-bottom:20px;position:relative;overflow:hidden;border-left:4px solid var(--steel);}
+  .card-title{font-family:'Cinzel',serif;font-size:1.2rem;color:var(--navy-dark);margin-bottom:14px;letter-spacing:1px;}
+
+  /* DEVOCIONAL */
+  .devotion-card{background:linear-gradient(135deg,#f0f5fa,#e8f0f8);border:2px solid var(--steel);border-radius:12px;padding:24px;margin-bottom:20px;position:relative;overflow:hidden;}
+  .devotion-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--navy-dark),var(--steel),var(--amber));}
+  .devotion-icon{font-size:2rem;margin-bottom:8px;}
+  .devotion-title{font-family:'Cinzel',serif;font-size:1.4rem;color:var(--navy-dark);margin-bottom:4px;letter-spacing:1px;}
+  .devotion-ref{font-size:.78rem;color:var(--steel);font-weight:700;margin-bottom:12px;letter-spacing:1px;text-transform:uppercase;}
+  .devotion-verse{font-size:.95rem;line-height:1.8;color:var(--navy-dark);background:rgba(255,255,255,.7);border-radius:10px;padding:14px 16px;border-left:4px solid var(--amber);font-style:italic;margin-bottom:12px;}
+  .devotion-reflection{font-size:.85rem;color:var(--text-light);line-height:1.7;}
+
+  /* LOUVOR */
+  .louvor-card{background:linear-gradient(135deg,#e8f5e9,#f0f8ff);border:2px solid var(--green);border-radius:12px;padding:20px;margin-bottom:20px;}
+  .louvor-card-title{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--green);margin-bottom:8px;letter-spacing:1px;}
+  .louvor-verse{font-style:italic;font-size:.9rem;color:#1b4620;line-height:1.7;background:rgba(255,255,255,.6);border-radius:10px;padding:12px 14px;border-left:4px solid var(--green);}
+  .louvor-ref{font-size:.76rem;color:var(--green);font-weight:700;margin-top:8px;font-style:normal;letter-spacing:0.5px;}
+
+  /* BÍBLIA */
+  .bible-card{background:linear-gradient(135deg,#f0f5ff,#e8f0f8);border:2px solid var(--steel-light);border-radius:12px;padding:20px;margin-bottom:20px;}
+  .bible-card-title{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--navy);margin-bottom:8px;letter-spacing:1px;}
+  .bible-progress{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .bible-day-badge{background:var(--navy);color:white;border-radius:6px;padding:4px 12px;font-size:.76rem;font-weight:700;letter-spacing:1px;}
+  .bible-reading{font-size:.9rem;color:var(--navy-dark);font-weight:700;margin-bottom:4px;}
+  .bible-desc{font-size:.82rem;color:var(--text-light);line-height:1.5;}
+  .bible-check-row{display:flex;align-items:center;gap:8px;margin-top:10px;}
+  .bible-check-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--navy);cursor:pointer;}
+  .bible-check-row label{font-size:.85rem;color:var(--navy);font-weight:600;cursor:pointer;}
+
+  /* AGENDA */
+  .hour-slot-v{display:flex;align-items:stretch;margin-bottom:5px;border-radius:8px;overflow:hidden;border:1.5px solid var(--steel-light);background:var(--steel-bg);transition:border-color .2s;}
+  .hour-slot-v:focus-within{border-color:var(--steel);background:white;}
+  .hour-label-v{background:linear-gradient(135deg,var(--navy-dark),var(--navy));color:white;font-size:.75rem;font-weight:700;padding:9px 10px;min-width:58px;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:0.5px;}
+  .hour-input-v{flex:1;border:none;background:transparent;font-family:'Raleway',sans-serif;font-size:.86rem;color:var(--text);outline:none;padding:9px 12px;}
+
+  /* HUMOR */
+  .mood-card{background:white;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 4px 15px var(--shadow);border-left:4px solid var(--amber);}
+  .mood-card-title{font-size:.82rem;font-weight:700;color:var(--navy-dark);margin-bottom:12px;letter-spacing:0.5px;text-transform:uppercase;}
+  .mood-thermometer{display:flex;align-items:center;border-radius:8px;overflow:hidden;border:2px solid var(--steel-light);}
+  .mood-item{flex:1;padding:10px 4px;text-align:center;font-size:1.4rem;cursor:pointer;transition:all .2s;background:var(--steel-bg);border:none;border-right:1px solid var(--steel-light);}
+  .mood-item:last-child{border-right:none;}
+  .mood-item:hover{background:var(--steel-light);transform:scale(1.15);z-index:1;position:relative;}
+  .mood-item.selected{background:linear-gradient(135deg,var(--steel-light),var(--amber-light));transform:scale(1.1);z-index:1;position:relative;}
+  .mood-label{font-size:.62rem;color:var(--text-light);display:block;margin-top:2px;}
+
+  /* DIÁRIO */
+  .diary-date-title{font-family:'Cinzel',serif;font-size:1.4rem;color:var(--navy-dark);margin-bottom:16px;letter-spacing:2px;}
+  .diary-textarea{width:100%;border:2px solid var(--steel-light);border-radius:10px;padding:14px;font-family:'Raleway',sans-serif;font-size:.92rem;color:var(--text);background:var(--steel-bg);resize:vertical;outline:none;line-height:1.7;transition:border-color .2s;margin-bottom:16px;}
+  .diary-textarea:focus{border-color:var(--steel);background:white;}
+  .diary-section-label{font-size:.8rem;font-weight:700;color:var(--navy-dark);margin-bottom:8px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:0.5px;}
+  .diary-date-picker{display:flex;align-items:center;gap:8px;background:white;border-radius:10px;padding:10px 16px;box-shadow:0 4px 15px var(--shadow);margin-bottom:20px;border:1px solid var(--steel-light);}
+  .diary-date-picker input[type="date"]{border:none;font-family:'Raleway',sans-serif;font-size:.9rem;color:var(--text);background:transparent;outline:none;cursor:pointer;}
+  .save-msg{display:inline-flex;align-items:center;gap:6px;color:var(--navy);font-size:.82rem;font-weight:600;opacity:0;transition:opacity .3s;margin-left:12px;}
+  .save-msg.show{opacity:1;}
+
+  /* SEMANAL */
+  .week-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+  .week-nav button{background:white;border:2px solid var(--steel-light);color:var(--navy);padding:8px 16px;border-radius:8px;font-family:'Raleway',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .3s;}
+  .week-nav button:hover{background:var(--navy);color:white;border-color:var(--navy);}
+  .week-title{font-family:'Cinzel',serif;font-size:1.3rem;color:var(--navy-dark);text-align:center;letter-spacing:2px;}
+  .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px;}
+  @media(max-width:700px){.week-grid{grid-template-columns:1fr;}}
+  .week-day-card{background:white;border-radius:10px;padding:14px 10px;box-shadow:0 4px 15px var(--shadow);border-top:3px solid var(--steel-light);}
+  .week-day-card.today-card{border-top-color:var(--navy-dark);}
+  .week-day-name{font-size:.72rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;}
+  .week-day-num{font-size:1.4rem;font-weight:700;color:var(--text);margin-bottom:8px;}
+  .week-task-input{width:100%;border:1.5px solid var(--steel-light);border-radius:8px;padding:6px 8px;font-family:'Raleway',sans-serif;font-size:.76rem;color:var(--text);background:var(--steel-bg);resize:vertical;min-height:70px;outline:none;}
+  .week-task-input:focus{border-color:var(--steel);}
+  .obj-textarea{width:100%;border:2px solid var(--steel-light);border-radius:10px;padding:14px;font-family:'Raleway',sans-serif;font-size:.9rem;color:var(--text);background:var(--steel-bg);resize:vertical;outline:none;line-height:1.7;}
+  .obj-textarea:focus{border-color:var(--steel);background:white;}
+  .bible-msg-box{background:linear-gradient(135deg,#f0f5fa,#e8f0f8);border:2px solid var(--steel);border-radius:12px;padding:18px;font-style:italic;font-size:.9rem;color:var(--navy-dark);line-height:1.8;margin-bottom:20px;}
+  .bible-msg-ref{font-size:.78rem;font-weight:700;color:var(--steel);margin-top:8px;font-style:normal;letter-spacing:0.5px;}
+
+  /* MENSAL */
+  .month-nav{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:24px;}
+  .month-nav button{background:white;border:2px solid var(--steel-light);color:var(--navy);width:40px;height:40px;border-radius:50%;font-size:1.2rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;}
+  .month-nav button:hover{background:var(--navy);color:white;border-color:var(--navy);}
+  .month-title{font-family:'Cinzel',serif;font-size:1.8rem;color:var(--navy-dark);min-width:220px;text-align:center;letter-spacing:2px;}
+  .calendar-grid{background:white;border-radius:12px;padding:20px;box-shadow:0 4px 20px var(--shadow);}
+  .cal-header{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;}
+  .cal-header span{text-align:center;font-size:.76rem;font-weight:700;color:var(--navy);padding:6px;text-transform:uppercase;letter-spacing:0.5px;}
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+  .cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:6px 4px;border-radius:8px;cursor:pointer;transition:all .2s;border:2px solid transparent;font-size:.88rem;font-weight:600;position:relative;min-height:44px;}
+  .cal-day:hover{background:var(--steel-light);border-color:var(--steel);}
+  .cal-day.today{background:linear-gradient(135deg,var(--navy-dark),var(--navy-light));color:white;}
+  .cal-day.has-event::after{content:'◆';font-size:.45rem;color:var(--amber);position:absolute;bottom:4px;}
+  .cal-day.today.has-event::after{color:var(--amber-light);}
+  .cal-day.other-month{opacity:.3;}
+  .month-goals-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;}
+  @media(max-width:600px){.month-goals-grid{grid-template-columns:1fr;}}
+  .month-goal-card{background:white;border-radius:10px;padding:18px;box-shadow:0 4px 15px var(--shadow);border-top:3px solid var(--steel-light);}
+  .month-goal-card.amber-top{border-top-color:var(--amber);}
+  .month-goal-card.green-top{border-top-color:var(--green);}
+  .month-goal-card.navy-top{border-top-color:var(--navy-dark);}
+  .month-goal-label{font-size:.8rem;font-weight:700;color:var(--navy-dark);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;}
+  .month-goal-ta{width:100%;border:1.5px solid var(--steel-light);border-radius:8px;padding:10px;font-family:'Raleway',sans-serif;font-size:.84rem;color:var(--text);background:var(--steel-bg);resize:vertical;min-height:90px;outline:none;}
+  .month-goal-ta:focus{border-color:var(--steel);background:white;}
+
+  /* ANUAL */
+  .year-nav{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:24px;}
+  .year-nav button{background:white;border:2px solid var(--steel-light);color:var(--navy);width:40px;height:40px;border-radius:50%;font-size:1.2rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;}
+  .year-nav button:hover{background:var(--navy);color:white;}
+  .year-title{font-family:'Cinzel',serif;font-size:1.8rem;color:var(--navy-dark);letter-spacing:3px;}
+  .year-months-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+  @media(max-width:600px){.year-months-grid{grid-template-columns:repeat(2,1fr);}}
+  .year-month-card{background:white;border-radius:10px;padding:14px;box-shadow:0 4px 15px var(--shadow);border-top:3px solid var(--steel-light);cursor:pointer;transition:all .2s;}
+  .year-month-card:hover{transform:translateY(-3px);box-shadow:0 8px 25px var(--shadow);}
+  .year-month-card.has-note{border-top-color:var(--navy-dark);}
+  .ymcard-name{font-weight:700;color:var(--navy-dark);margin-bottom:6px;font-size:.86rem;letter-spacing:0.5px;}
+  .ymcard-preview{font-size:.76rem;color:var(--text-light);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .year-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:600px){.year-summary-grid{grid-template-columns:1fr;}}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(18,37,56,.5);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:white;border-radius:14px;padding:30px;max-width:480px;width:100%;box-shadow:0 30px 80px rgba(18,37,56,.4);position:relative;max-height:90vh;overflow-y:auto;border-top:4px solid var(--navy);}
+  .modal-close{position:absolute;top:14px;right:14px;background:var(--steel-bg);border:none;width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;color:var(--navy);display:flex;align-items:center;justify-content:center;}
+  .modal-title{font-family:'Cinzel',serif;font-size:1.6rem;color:var(--navy-dark);margin-bottom:4px;letter-spacing:1px;}
+  .modal-date-sub{font-size:.82rem;color:var(--text-light);margin-bottom:18px;}
+  .event-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--steel-bg);border-radius:8px;margin-bottom:6px;border-left:3px solid var(--steel);}
+  .event-item span{font-size:.88rem;color:var(--text);}
+  .btn-del-event{background:none;border:none;color:var(--navy);cursor:pointer;font-size:.9rem;padding:2px 6px;border-radius:6px;}
+  .event-add{display:flex;gap:8px;}
+  .event-add input{flex:1;padding:10px 12px;border:2px solid var(--steel-light);border-radius:8px;font-family:'Raleway',sans-serif;font-size:.88rem;color:var(--text);background:var(--steel-bg);outline:none;}
+  .event-add input:focus{border-color:var(--steel);background:white;}
+  .btn-add-event{background:var(--navy);color:white;border:none;padding:10px 16px;border-radius:8px;font-size:1.2rem;cursor:pointer;}
+  .modal-ta{width:100%;border:2px solid var(--steel-light);border-radius:8px;padding:12px;font-family:'Raleway',sans-serif;font-size:.88rem;color:var(--text);background:var(--steel-bg);resize:vertical;outline:none;min-height:80px;margin-bottom:8px;}
+  .modal-ta:focus{border-color:var(--steel);background:white;}
+
+  #autosave-toast{position:fixed;bottom:24px;right:24px;background:var(--navy-dark);color:white;border-radius:8px;padding:10px 18px;box-shadow:0 4px 20px rgba(18,37,56,.35);font-family:'Raleway',sans-serif;font-size:.8rem;font-weight:600;z-index:500;opacity:0;transition:opacity .4s;pointer-events:none;letter-spacing:0.5px;}
+
+  @media(max-width:600px){
+    .login-card{padding:32px 20px;}
+    .content{padding:14px 10px;}
+    .cal-day{min-height:36px;font-size:.76rem;}
+    .header-title{font-size:1.2rem;}
+  }
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loading-icon">⚔️</div>
+  <div class="loading-text">CARREGANDO...</div>
+</div>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-decoration">✝️</div>
+    <h1 class="login-title">Homem de Fé</h1>
+    <p class="login-subtitle">"Sê forte e corajoso! Não te atemorizes, porque o Senhor teu Deus é contigo." — Josué 1:9</p>
+    <div class="sync-badge">☁️ Sincronizado em todos os dispositivos</div>
+    <div class="login-error" id="login-error"></div>
+    <div id="form-login">
+      <div class="input-group">
+        <label>Usuário</label>
+        <input type="text" id="login-user" placeholder="Seu nome..." autocomplete="username">
+      </div>
+      <div class="input-group">
+        <label>Senha</label>
+        <input type="password" id="login-pass" placeholder="Sua senha..." autocomplete="current-password">
+      </div>
+      <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar ✝️</button>
+      <p class="login-toggle">Primeira vez? <span onclick="showRegister()">Criar conta</span></p>
+    </div>
+    <div id="form-register" style="display:none">
+      <div class="input-group">
+        <label>Seu nome</label>
+        <input type="text" id="reg-user" placeholder="Como posso te chamar?">
+      </div>
+      <div class="input-group">
+        <label>Criar senha</label>
+        <input type="password" id="reg-pass" placeholder="Crie sua senha...">
+      </div>
+      <div class="input-group">
+        <label>Confirmar senha</label>
+        <input type="password" id="reg-pass2" placeholder="Repita sua senha...">
+      </div>
+      <button class="btn-primary" id="btn-register" onclick="doRegister()">Criar meu planner ⚔️</button>
+      <p class="login-toggle">Já tem conta? <span onclick="showLogin()">Entrar</span></p>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="header-title">⚔️ HOMEM DE FÉ</div>
+      <div class="sync-dot" id="sync-dot" title="Sincronizado"></div>
+    </div>
+    <div class="header-user">
+      <span id="header-username"></span>
+      <button id="btn-install" onclick="installApp()">📲 Instalar App</button>
+      <button class="btn-logout" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+  <div id="autosave-toast">✔ Salvo automaticamente</div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showSection('diary',this)">📖 Dia</button>
+    <button class="nav-btn" onclick="showSection('weekly',this)">🗓️ Semana</button>
+    <button class="nav-btn" onclick="showSection('monthly',this)">📅 Mês</button>
+    <button class="nav-btn" onclick="showSection('annual',this)">🌟 Ano</button>
+  </div>
+
+  <div class="content">
+
+    <!-- DIA -->
+    <div class="section active" id="section-diary">
+      <div class="section-header">
+        <span class="section-icon">📖</span>
+        <div>
+          <div class="section-title">Agenda Diária</div>
+          <div class="section-sub" id="diary-today-date"></div>
+        </div>
+      </div>
+      <div class="diary-date-picker">
+        📅 <input type="date" id="diary-date" onchange="loadDiary()">
+      </div>
+
+      <div class="devotion-card">
+        <div class="devotion-icon">⚔️</div>
+        <div class="devotion-title">Devocional do Dia</div>
+        <div class="devotion-ref" id="devotion-ref"></div>
+        <div class="devotion-verse" id="devotion-verse"></div>
+        <div class="devotion-reflection" id="devotion-reflection"></div>
+      </div>
+
+      <div class="louvor-card">
+        <div class="louvor-card-title">🎵 Louvor & Oração</div>
+        <div class="louvor-verse" id="louvor-verse"></div>
+        <div class="louvor-ref" id="louvor-ref"></div>
+      </div>
+
+      <div class="bible-card">
+        <div class="bible-card-title">📚 Leitura Bíblica — 1 ano</div>
+        <div class="bible-progress">
+          <div class="bible-day-badge" id="bible-day-badge">DIA 1</div>
+          <div id="bible-progress-pct" style="font-size:.76rem;color:var(--text-light);"></div>
+        </div>
+        <div class="bible-reading" id="bible-reading-text"></div>
+        <div class="bible-desc" id="bible-reading-desc"></div>
+        <div class="bible-check-row">
+          <input type="checkbox" id="bible-done" onchange="saveBibleCheck()">
+          <label for="bible-done">Li a passagem de hoje ✓</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🕐 Agenda do Dia</div>
+        <div id="diary-hours"></div>
+      </div>
+
+      <div class="mood-card">
+        <div class="mood-card-title">🌡️ Como está seu espírito hoje?</div>
+        <div class="mood-thermometer" id="mood-thermometer"></div>
+        <div id="mood-selected-label" style="text-align:center;font-size:.8rem;color:var(--text-light);margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="diary-date-title" id="diary-date-title"></div>
+        <div class="diary-section-label">📝 Reflexão do dia</div>
+        <textarea class="diary-textarea" id="diary-text" rows="5" placeholder="Como foi o dia? Batalhas vencidas, lições aprendidas, decisões tomadas..." oninput="autoSaveDiary()"></textarea>
+        <div class="diary-section-label">🙏 Gratidão ao Senhor</div>
+        <textarea class="diary-textarea" id="diary-gratitude" rows="3" placeholder="3 motivos de gratidão ao Senhor hoje..." oninput="autoSaveDiary()"></textarea>
+        <div class="diary-section-label">⚔️ Pedido de oração</div>
+        <textarea class="diary-textarea" id="diary-prayer" rows="2" placeholder="O que levar diante do Senhor em oração?" oninput="autoSaveDiary()"></textarea>
+        <div class="diary-section-label">🎯 Propósito para amanhã</div>
+        <textarea class="diary-textarea" id="diary-goal" rows="2" placeholder="O que Deus está me chamando a fazer amanhã?" oninput="autoSaveDiary()"></textarea>
+      </div>
+    </div>
+
+    <!-- SEMANA -->
+    <div class="section" id="section-weekly">
+      <div class="section-header">
+        <span class="section-icon">🗓️</span>
+        <div>
+          <div class="section-title">Planejamento Semanal</div>
+          <div class="section-sub">Cada dia é uma nova oportunidade de honrar o Senhor</div>
+        </div>
+      </div>
+      <div class="week-nav">
+        <button onclick="prevWeek()">‹ Anterior</button>
+        <div class="week-title" id="week-title"></div>
+        <button onclick="nextWeek()">Próxima ›</button>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-title">🎯 Propósitos da Semana</div>
+        <textarea class="obj-textarea" id="week-objectives" rows="4" placeholder="O que o Senhor colocou no seu coração para essa semana?&#10;• Propósito 1&#10;• Propósito 2&#10;• Propósito 3" oninput="autoSaveWeekObj()"></textarea>
+      </div>
+      <div class="bible-msg-box">
+        <div id="week-verse-text"></div>
+        <div class="bible-msg-ref" id="week-verse-ref"></div>
+      </div>
+      <div class="week-grid" id="week-grid"></div>
+    </div>
+
+    <!-- MÊS -->
+    <div class="section" id="section-monthly">
+      <div class="section-header">
+        <span class="section-icon">📅</span>
+        <div>
+          <div class="section-title">Planejamento Mensal</div>
+          <div class="section-sub">Clique em um dia para adicionar eventos</div>
+        </div>
+      </div>
+      <div class="month-nav">
+        <button onclick="prevMonth()">‹</button>
+        <div class="month-title" id="month-title"></div>
+        <button onclick="nextMonth()">›</button>
+      </div>
+      <div class="calendar-grid">
+        <div class="cal-header">
+          <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+        </div>
+        <div class="cal-days" id="cal-days"></div>
+      </div>
+      <div class="month-goals-grid">
+        <div class="month-goal-card">
+          <div class="month-goal-label">🎯 Metas do mês</div>
+          <textarea class="month-goal-ta" id="month-goals" placeholder="O que quer conquistar esse mês?" oninput="autoSaveMonth()"></textarea>
+        </div>
+        <div class="month-goal-card green-top">
+          <div class="month-goal-label">✝️ Vida na Igreja</div>
+          <textarea class="month-goal-ta" id="month-spiritual" placeholder="Cultos, células, evangelismo, voluntariado, dízimo..." oninput="autoSaveMonth()"></textarea>
+        </div>
+        <div class="month-goal-card amber-top">
+          <div class="month-goal-label">🙏 Graças ao Senhor</div>
+          <textarea class="month-goal-ta" id="month-gratitude" placeholder="O que Deus fez por mim esse mês..." oninput="autoSaveMonth()"></textarea>
+        </div>
+        <div class="month-goal-card navy-top">
+          <div class="month-goal-label">💰 Mordomia & Finanças</div>
+          <textarea class="month-goal-ta" id="month-finance" placeholder="Dízimo, ofertas, orçamento, contas..." oninput="autoSaveMonth()"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANO -->
+    <div class="section" id="section-annual">
+      <div class="section-header">
+        <span class="section-icon">🌟</span>
+        <div>
+          <div class="section-title">Planejamento Anual</div>
+          <div class="section-sub">Sua visão e propósito para o ano inteiro</div>
+        </div>
+      </div>
+      <div class="year-nav">
+        <button onclick="prevYear()">‹</button>
+        <div class="year-title" id="year-title"></div>
+        <button onclick="nextYear()">›</button>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-title">📅 Visão por Mês — Clique para editar</div>
+        <div class="year-months-grid" id="year-months-grid"></div>
+      </div>
+      <div class="year-summary-grid">
+        <div class="month-goal-card">
+          <div class="month-goal-label">🌟 Sonhos & Visão do Ano</div>
+          <textarea class="month-goal-ta" style="min-height:120px;" id="year-dreams" placeholder="O que Deus tem falado ao seu coração para esse ano?" oninput="autoSaveAnnual()"></textarea>
+        </div>
+        <div class="month-goal-card green-top">
+          <div class="month-goal-label">✝️ Metas Espirituais</div>
+          <textarea class="month-goal-ta" style="min-height:120px;" id="year-spiritual" placeholder="Ler a Bíblia, jejuns, evangelismo, servir na igreja..." oninput="autoSaveAnnual()"></textarea>
+        </div>
+        <div class="month-goal-card amber-top">
+          <div class="month-goal-label">💰 Mordomia Financeira</div>
+          <textarea class="month-goal-ta" style="min-height:120px;" id="year-finance" placeholder="Dízimo, poupança, investimentos, bênçãos financeiras..." oninput="autoSaveAnnual()"></textarea>
+        </div>
+        <div class="month-goal-card navy-top">
+          <div class="month-goal-label">👨‍👩‍👦 Família & Liderança</div>
+          <textarea class="month-goal-ta" style="min-height:120px;" id="year-family" placeholder="Liderança espiritual, família, relacionamentos..." oninput="autoSaveAnnual()"></textarea>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL Eventos -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOuter(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-date-sub" id="modal-date-sub"></div>
+    <div style="margin-bottom:12px;">
+      <div class="diary-section-label">📌 Eventos & Compromissos</div>
+      <div class="event-list" id="event-list"></div>
+      <div class="event-add">
+        <input type="text" id="new-event-input" placeholder="Adicionar evento..." onkeydown="if(event.key==='Enter')addEvent()">
+        <button class="btn-add-event" onclick="addEvent()">+</button>
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <div class="diary-section-label">📝 Anotação do dia</div>
+      <textarea class="modal-ta" id="modal-note" placeholder="Anotações sobre esse dia..." oninput="autoSaveModalNote()"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL Mês do Ano -->
+<div class="modal-overlay" id="year-month-modal" onclick="closeYearModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeYearModal()">✕</button>
+    <div class="modal-title" id="ym-modal-title"></div>
+    <div style="margin-top:12px;">
+      <div class="diary-section-label">🎯 Planos para esse mês</div>
+      <textarea class="modal-ta" id="ym-modal-ta" rows="6" placeholder="O que está planejado?" oninput="autoSaveYearMonth()"></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL='https://bjsuidpeckpboqbsbmpm.supabase.co';
+const SUPA_KEY='sb_publishable_nk9UP7oA59b1I5LnDD55Xw_aeqfrxkA';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DAYS_LONG=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+const DAYS_SHORT=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const HOURS=['05:00','05:30','06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00','22:30','23:00','23:30'];
+
+const DEVOTIONS=[
+  {ref:'Josué 1:9 — ARC',verse:'"Não to mandei eu? Sê forte e corajoso; não te espantes, nem te atemorizes, porque o Senhor teu Deus é contigo por onde quer que andares."',reflection:'O Senhor ordena coragem ao Seu servo. Enfrente os desafios de hoje com a certeza de que Ele está ao seu lado em cada passo.'},
+  {ref:'Salmos 1:1-2 — ARC',verse:'"Bem-aventurado o homem que não anda no conselho dos ímpios... mas cuja vontade está na lei do Senhor, e na sua lei medita de dia e de noite."',reflection:'O homem de fé medita na Palavra do Senhor. Que a leitura da Bíblia hoje renove sua mente e guie cada decisão.'},
+  {ref:'Provérbios 27:17 — ARC',verse:'"O ferro com o ferro se aguça; assim o homem aguça o rosto do seu amigo."',reflection:'Você precisa de irmãos que te desafiem a crescer. Busque hoje companhia que te faça mais forte na fé.'},
+  {ref:'Miquéias 6:8 — NVI',verse:'"O que o Senhor quer de você: que pratique a justiça, que seja fiel ao amor e que ande humildemente com o seu Deus."',reflection:'Três marcas de um homem de fé: justiça, amor fiel e humildade diante de Deus. Expresse essas qualidades hoje.'},
+  {ref:'Efésios 6:10-11 — ARC',verse:'"Fortalecei-vos no Senhor e na força do seu poder. Revesti-vos de toda a armadura de Deus, para que possais estar firmes."',reflection:'A batalha espiritual é real. Vista a armadura de Deus antes de sair — oração, Palavra, fé e integridade.'},
+  {ref:'I Coríntios 16:13 — ARC',verse:'"Vigiai, permanecei firmes na fé, portai-vos varonilmente e fortalecei-vos."',reflection:'Quatro mandamentos diretos ao homem de Deus. Vigilância, firmeza, virilidade e força. Como você está nessas quatro áreas hoje?'},
+  {ref:'Provérbios 4:23 — ARC',verse:'"Sobre tudo o que se deve guardar, guarda o teu coração, porque dele procedem as saídas da vida."',reflection:'A batalha mais importante é interna. Guarde seus pensamentos, desejos e motivações sob o padrão de Deus hoje.'},
+  {ref:'Romanos 8:28 — ARC',verse:'"E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus."',reflection:'Até as situações difíceis de hoje têm um propósito nas mãos de Deus. Confie nEle mesmo quando não entende.'},
+  {ref:'Filipenses 4:13 — ARC',verse:'"Posso tudo naquele que me fortalece."',reflection:'Não há desafio grande demais quando Cristo está com você. Essa verdade deve sustentar cada passo do seu dia.'},
+  {ref:'II Timóteo 2:15 — ARC',verse:'"Procura apresentar-te a Deus aprovado, como obreiro que não tem de que se envergonhar, que maneja bem a palavra da verdade."',reflection:'Estudar e conhecer bem a Bíblia é responsabilidade do homem de Deus. Quanto tempo você dedicará à Palavra hoje?'},
+  {ref:'Provérbios 3:5-6 — ARC',verse:'"Confia no Senhor de todo o teu coração, e não te estribes no teu próprio entendimento. Reconhece-o em todos os teus caminhos, e ele endireitará as tuas veredas."',reflection:'O homem sábio reconhece seus limites e busca a direção do Senhor antes de decidir.'},
+  {ref:'Salmos 23:1 — ARC',verse:'"O Senhor é o meu pastor; nada me faltará."',reflection:'Que declaração poderosa! Com o Bom Pastor ao seu lado, você não tem do que carecer hoje.'},
+  {ref:'Mateus 6:33 — ARC',verse:'"Mas buscai primeiro o reino de Deus e a sua justiça, e todas essas coisas vos serão acrescentadas."',reflection:'Quando Deus é a prioridade, tudo mais se encaixa. Comece seu dia buscando o Senhor.'},
+  {ref:'Josué 24:15 — ARC',verse:'"Quanto a mim e à minha casa, serviremos ao Senhor."',reflection:'A decisão mais importante que um homem pode tomar é liderar sua família no temor ao Senhor. Reafirme essa decisão hoje.'},
+  {ref:'Efésios 5:25 — ARC',verse:'"Vós, maridos, amai vossas mulheres, como também Cristo amou a Igreja e a si mesmo se entregou por ela."',reflection:'Amar com sacrifício e liderar espiritualmente a família é a mais nobre das responsabilidades do homem de fé.'},
+  {ref:'I Pedro 5:6-7 — ARC',verse:'"Humilhai-vos, pois, sob a poderosa mão de Deus, para que ele vos exalte no tempo oportuno; lançando sobre ele toda a vossa ansiedade, porque ele tem cuidado de vós."',reflection:'A força verdadeira começa com humildade. Lance suas preocupações sobre o Senhor — Ele cuida de você.'},
+  {ref:'Salmos 119:9 — ARC',verse:'"Como purificará o jovem o seu caminho? Observando-o segundo a tua palavra."',reflection:'A Palavra de Deus é o padrão para a vida do homem de fé. Deixe ela corrigir, guiar e fortalecer você hoje.'},
+  {ref:'Provérbios 22:6 — ARC',verse:'"Ensina a criança no caminho em que deve andar, e até quando envelhecer não se desviará dele."',reflection:'A liderança espiritual começa em casa. Que impacto eterno você está deixando nas vidas ao seu redor?'},
+  {ref:'II Timóteo 1:7 — ARC',verse:'"Porque Deus não nos deu o espírito de temor, mas de poder, de amor e de moderação."',reflection:'Medo não vem de Deus. Você foi chamado ao poder, ao amor e ao equilíbrio. Ande nessa identidade hoje.'},
+  {ref:'Salmos 37:4 — ARC',verse:'"Deleita-te também no Senhor, e ele te concederá os desejos do teu coração."',reflection:'Quando nossa maior alegria é o Senhor, nossos desejos se alinham com os Seus. Busque essa delícia hoje.'},
+  {ref:'Daniel 1:8 — ARC',verse:'"Daniel, porém, propôs no seu coração que não se contaminaria com a comida da mesa do rei."',reflection:'Daniel tomou uma decisão de integridade antes do teste chegar. Que decisões de caráter você precisa firmar hoje?'},
+  {ref:'Neemias 4:14 — ARC',verse:'"Lembrai-vos do Senhor, grande e temível, e pelejai por vossos irmãos, por vossos filhos, por vossas filhas, por vossas mulheres."',reflection:'O homem de fé é protetor. Defenda espiritualmente sua família e seus irmãos com oração e ação.'},
+  {ref:'Colossenses 3:23 — NVI',verse:'"Tudo o que fizerem, façam de todo o coração, como para o Senhor, e não para os homens."',reflection:'Cada tarefa de hoje, grande ou pequena, pode ser oferecida ao Senhor como ato de adoração. Faça com excelência.'},
+  {ref:'Filipenses 4:6-7 — ARC',verse:'"Não estejais inquietos por coisa alguma; antes as vossas petições sejam em tudo conhecidas diante de Deus."',reflection:'Traga todas as preocupações de hoje para Deus em oração. A paz que excede todo entendimento guardará seu coração.'},
+  {ref:'Romanos 12:2 — ARC',verse:'"E não vos conformeis com este século, mas transformai-vos pela renovação do vosso entendimento."',reflection:'Não seja moldado pelo mundo — seja transformado pela Palavra. A renovação da mente é um processo diário.'},
+  {ref:'II Coríntios 12:9 — ARC',verse:'"A minha graça te basta, porque o meu poder se aperfeiçoa na fraqueza."',reflection:'Nas suas limitações, a graça de Cristo é suficiente. Você não precisa ser perfeito — precisa ser dependente de Deus.'},
+  {ref:'Tiago 1:2-4 — ARC',verse:'"Meus irmãos, tende grande alegria quando cairdes em várias tentações, sabendo que a prova da vossa fé produz paciência."',reflection:'As provações constroem caráter. Persevere — Deus está usando cada dificuldade para completar e fortalecer você.'},
+  {ref:'Salmos 46:1 — ARC',verse:'"Deus é o nosso refúgio e força, socorro bem provado nas tribulações."',reflection:'Em qualquer situação difícil, o Senhor está acessível. Corra para Ele em oração antes de tentar resolver sozinho.'},
+  {ref:'Provérbios 28:1 — ARC',verse:'"O ímpio foge, sem que ninguém o persiga; mas o justo está confiante como um leão jovem."',reflection:'O homem reto não precisa temer. A integridade traz confiança genuína. Ande hoje com a coragem de quem sabe em quem crê.'},
+  {ref:'Apocalipse 2:10 — ARC',verse:'"Sê fiel até à morte, e dar-te-ei a coroa da vida."',reflection:'A fidelidade não é apenas para os bons momentos. O Senhor chama você a ser fiel até o fim — e promete recompensar.'},
+];
+
+const LOUVORES=[
+  {verse:'"Bendize, ó minha alma, ao Senhor, e tudo o que há em mim bendiga o seu santo nome."',ref:'— Salmos 103:1 (ARC)'},
+  {verse:'"O Senhor é a minha força e o meu escudo; nele confiou o meu coração, e fui socorrido."',ref:'— Salmos 28:7 (ARC)'},
+  {verse:'"Cantai ao Senhor um cântico novo; cantai ao Senhor, todas as terras."',ref:'— Salmos 96:1 (ARC)'},
+  {verse:'"Grande é o Senhor e mui digno de ser louvado."',ref:'— Salmos 145:3 (ARC)'},
+  {verse:'"O Senhor é o meu pastor; nada me faltará."',ref:'— Salmos 23:1 (ARC)'},
+  {verse:'"Louvai o Senhor, porque ele é bom; porque a sua misericórdia dura para sempre."',ref:'— Salmos 106:1 (ARC)'},
+  {verse:'"Amo-te, ó Senhor, força minha."',ref:'— Salmos 18:1 (ARC)'},
+  {verse:'"Alegrai-vos no Senhor sempre; outra vez digo: Alegrai-vos."',ref:'— Filipenses 4:4 (ARC)'},
+  {verse:'"Tu és digno, Senhor e Deus nosso, de receber a glória, a honra e o poder."',ref:'— Apocalipse 4:11 (ARC)'},
+  {verse:'"Serve ao Senhor com alegria; apresentai-vos diante dele com jubilação."',ref:'— Salmos 100:2 (ARC)'},
+];
+
+const WEEK_VERSES=[
+  {text:'"Sê forte e corajoso! Não te atemorizes, porque o Senhor teu Deus é contigo por onde quer que andares."',ref:'— Josué 1:9 (ARC)'},
+  {text:'"Posso tudo naquele que me fortalece."',ref:'— Filipenses 4:13 (ARC)'},
+  {text:'"Confia no Senhor de todo o teu coração, e não te estribes no teu próprio entendimento."',ref:'— Provérbios 3:5 (ARC)'},
+  {text:'"Quanto a mim e à minha casa, serviremos ao Senhor."',ref:'— Josué 24:15 (ARC)'},
+  {text:'"O ferro com o ferro se aguça; assim o homem aguça o rosto do seu amigo."',ref:'— Provérbios 27:17 (ARC)'},
+  {text:'"Buscai primeiro o reino de Deus e a sua justiça, e todas essas coisas vos serão acrescentadas."',ref:'— Mateus 6:33 (ARC)'},
+  {text:'"Porque Deus não nos deu o espírito de temor, mas de poder, de amor e de moderação."',ref:'— II Timóteo 1:7 (ARC)'},
+  {text:'"Tudo o que fizerem, façam de todo o coração, como para o Senhor."',ref:'— Colossenses 3:23 (NVI)'},
+  {text:'"As misericórdias do Senhor renovam-se cada manhã; grande é a sua fidelidade."',ref:'— Lamentações 3:22-23 (ARC)'},
+  {text:'"Vigiai, permanecei firmes na fé, portai-vos varonilmente e fortalecei-vos."',ref:'— I Coríntios 16:13 (ARC)'},
+  {text:'"A alegria do Senhor é a vossa força."',ref:'— Neemias 8:10 (ARC)'},
+  {text:'"Mas os que esperam no Senhor renovarão as forças; subirão com asas como águias."',ref:'— Isaías 40:31 (ARC)'},
+];
+
+const BIBLE_PLAN=[
+  ["Gênesis 1–3","A criação e o início da humanidade"],["Gênesis 4–7","Caim e Abel; Noé e o dilúvio"],["Gênesis 8–11","O arco-íris; Torre de Babel"],["Gênesis 12–15","Abraão é chamado"],["Gênesis 16–19","Hagar e Ismael; Sodoma"],["Gênesis 20–23","Isaque; Sara falece"],["Gênesis 24–26","Rebeca; Esaú e Jacó"],["Gênesis 27–29","Jacó e Raquel"],["Gênesis 30–32","Os filhos de Jacó"],["Gênesis 33–36","Reconciliação; Esaú"],["Gênesis 37–40","José e seus irmãos"],["Gênesis 41–43","José no Egito"],["Gênesis 44–47","Reunião da família"],["Gênesis 48–50","Últimas bênçãos; morte de José"],["Êxodo 1–4","Moisés; a sarça ardente"],["Êxodo 5–8","As pragas do Egito"],["Êxodo 9–12","A Páscoa; saída do Egito"],["Êxodo 13–16","Mar Vermelho; maná"],["Êxodo 17–20","Os Dez Mandamentos"],["Êxodo 21–24","Leis do Senhor"],["Êxodo 25–28","O tabernáculo"],["Êxodo 29–32","O bezerro de ouro"],["Êxodo 33–36","Renovação da aliança"],["Êxodo 37–40","Conclusão do tabernáculo"],["Levítico 1–4","Leis de oferendas"],["Levítico 5–8","Sacrifícios e sacerdotes"],["Levítico 9–12","Consagração; leis alimentares"],["Levítico 13–15","Leis de pureza"],["Levítico 16–18","Dia da Expiação"],["Levítico 19–21","Leis de santidade"],["Levítico 22–24","Festas sagradas"],["Levítico 25–27","Ano do Jubileu"],["Números 1–3","Censo do povo"],["Números 4–6","Deveres; voto de nazireu"],["Números 7–9","Dedicação; a Páscoa"],["Números 10–12","Murmúrios no deserto"],["Números 13–15","Os espias; rebeldia"],["Números 16–18","Rebelião de Corá"],["Números 19–21","A serpente de bronze"],["Números 22–24","Balaão e a jumenta"],["Números 25–27","Idolatria; novo censo"],["Números 28–30","Festas e votos"],["Números 31–33","Guerras; acampamentos"],["Números 34–36","Divisão da terra prometida"],["Deuteronômio 1–3","Revisão da história"],["Deuteronômio 4–6","O maior mandamento"],["Deuteronômio 7–9","Advertências de Moisés"],["Deuteronômio 10–12","Amor ao Senhor"],["Deuteronômio 13–16","Festas e dízimos"],["Deuteronômio 17–19","Reis; profetas"],["Deuteronômio 20–23","Leis de guerra e família"],["Deuteronômio 24–27","Diversas leis"],["Deuteronômio 28–30","Bênçãos e maldições"],["Deuteronômio 31–34","Morte de Moisés"],["Josué 1–4","Entrada em Canaã; Jordão"],["Josué 5–8","Jericó; Ai"],["Josué 9–11","Alianças; conquistas"],["Josué 12–15","Divisão da terra"],["Josué 16–19","Territórios das tribos"],["Josué 20–22","Cidades de refúgio"],["Josué 23–24","Discurso final de Josué"],["Juízes 1–3","Primeiros juízes"],["Juízes 4–6","Débora; Gideão"],["Juízes 7–9","Vitória de Gideão"],["Juízes 10–12","Jefté"],["Juízes 13–16","Sansão"],["Juízes 17–21","Micá; guerra civil"],["Rute 1–4","A fidelidade de Rute"],["I Samuel 1–3","Samuel é dedicado ao Senhor"],["I Samuel 4–7","A arca; retorno"],["I Samuel 8–11","Saul é escolhido rei"],["I Samuel 12–14","Saul desobedece a Deus"],["I Samuel 15–17","Davi e Golias"],["I Samuel 18–20","Davi e Jônatas"],["I Samuel 21–24","Davi foge de Saul"],["I Samuel 25–27","Abigail; Davi entre filisteus"],["I Samuel 28–31","Morte de Saul"],["II Samuel 1–4","Davi torna-se rei"],["II Samuel 5–7","A arca em Jerusalém"],["II Samuel 8–10","Vitórias de Davi"],["II Samuel 11–13","Davi e Bate-Seba"],["II Samuel 14–16","Absalão"],["II Samuel 17–20","Revolta; Davi retorna"],["II Samuel 21–24","Últimas palavras de Davi"],["I Reis 1–3","Salomão torna-se rei"],["I Reis 4–6","Sabedoria; o templo"],["I Reis 7–9","Dedicação do templo"],["I Reis 10–12","Rainha de Sabá; divisão"],["I Reis 13–15","Profetas"],["I Reis 16–18","Elias; chuva"],["I Reis 19–21","Fuga de Elias; Nabote"],["I Reis 22","Morte de Acabe"],["II Reis 1–3","Elias sobe ao céu; Eliseu"],["II Reis 4–6","Milagres de Eliseu"],["II Reis 7–9","Cerco de Samaria; Jeú"],["II Reis 10–12","Jeú; Joás"],["II Reis 13–15","Reis de Israel"],["II Reis 16–18","Queda de Samaria"],["II Reis 19–21","Ezequias; Isaías"],["II Reis 22–25","Josias; queda de Jerusalém"],["I Crônicas 1–5","Genealogias"],["I Crônicas 6–10","Tribos; morte de Saul"],["I Crônicas 11–15","Davi e a arca"],["I Crônicas 16–20","Pacto davídico; guerras"],["I Crônicas 21–25","Preparativos para o templo"],["I Crônicas 26–29","Organização; morte de Davi"],["II Crônicas 1–5","Salomão e o templo"],["II Crônicas 6–9","Dedicação; riqueza de Salomão"],["II Crônicas 10–14","Divisão; reis de Judá"],["II Crônicas 15–20","Josafá"],["II Crônicas 21–25","Reis; Joiada"],["II Crônicas 26–29","Ezequias"],["II Crônicas 30–33","Reformas"],["II Crônicas 34–36","Últimos reis; exílio"],["Esdras 1–4","Retorno do exílio"],["Esdras 5–7","Templo reconstruído"],["Esdras 8–10","Reforma de Esdras"],["Neemias 1–4","Reconstrução dos muros"],["Neemias 5–7","Oposição superada"],["Neemias 8–10","Renovação da aliança"],["Neemias 11–13","Dedicação; reformas"],["Ester 1–5","Ester e Mardoqueu"],["Ester 6–10","Salvação do povo judeu"],["Jó 1–5","Aflições de Jó"],["Jó 6–10","Respostas de Jó"],["Jó 11–15","Discursos dos amigos"],["Jó 16–20","Jó clama por resposta"],["Jó 21–25","Jó questiona a Deus"],["Jó 26–30","Sabedoria; lamento de Jó"],["Jó 31–34","Defesa final; Eliú"],["Jó 35–42","Deus responde; restauração"],["Salmos 1–10","Confiança no Senhor"],["Salmos 11–20","Proteção divina"],["Salmos 21–30","O Pastor e o Rei"],["Salmos 31–40","Louvor e lamento"],["Salmos 41–50","Sede de Deus"],["Salmos 51–60","Arrependimento; fé"],["Salmos 61–70","Esperança em aflição"],["Salmos 71–80","Hinos de louvor"],["Salmos 81–90","Eternidade de Deus"],["Salmos 91–100","Louvor e confiança"],["Salmos 101–108","Misericórdia do Senhor"],["Salmos 109–118","O Hallel"],["Salmos 119:1–88","A Palavra de Deus"],["Salmos 119:89–176","A Palavra de Deus (cont.)"],["Salmos 120–135","Salmos de subida"],["Salmos 136–150","Louvor eterno"],["Provérbios 1–5","Sabedoria acima de tudo"],["Provérbios 6–9","Sabedoria e pureza"],["Provérbios 10–14","Sabedoria prática"],["Provérbios 15–18","O coração e a língua"],["Provérbios 19–22","Conduta sábia"],["Provérbios 23–26","Mais ensinamentos"],["Provérbios 27–29","Justiça e liderança"],["Provérbios 30–31","O homem e a mulher sábios"],["Eclesiastes 1–6","Vaidade das vaidades"],["Eclesiastes 7–12","Temer a Deus"],["Cantares 1–8","Amor e devoção"],["Isaías 1–6","Visão de Isaías"],["Isaías 7–12","O ramo de Jessé"],["Isaías 13–18","Julgamentos sobre nações"],["Isaías 19–24","O apocalipse de Isaías"],["Isaías 25–30","Ais a Israel"],["Isaías 31–36","Promessas de restauração"],["Isaías 37–42","Consolo ao povo"],["Isaías 43–48","Israel, servo do Senhor"],["Isaías 49–54","O Servo Sofredor"],["Isaías 55–60","Convite de Deus"],["Isaías 61–66","Nova criação"],["Jeremias 1–5","Chamado de Jeremias"],["Jeremias 6–10","Pecado de Judá"],["Jeremias 11–15","Lamentos de Jeremias"],["Jeremias 16–20","Mensagens de julgamento"],["Jeremias 21–25","Falsos profetas"],["Jeremias 26–30","O jugo da Babilônia"],["Jeremias 31–33","Nova aliança"],["Jeremias 34–38","Destruição de Jerusalém"],["Jeremias 39–44","Fuga para o Egito"],["Jeremias 45–52","Queda da Babilônia"],["Lamentações 1–5","Lamentos e esperança"],["Ezequiel 1–5","Visões de Ezequiel"],["Ezequiel 6–11","A glória de Deus"],["Ezequiel 12–17","Falsas profecias"],["Ezequiel 18–22","Pecados de Israel"],["Ezequiel 23–28","Tiro e Sidom"],["Ezequiel 29–33","O Egito; sentinela"],["Ezequiel 34–39","O Pastor; Gogue"],["Ezequiel 40–48","O novo templo"],["Daniel 1–4","Fiéis na Babilônia"],["Daniel 5–8","Visões proféticas"],["Daniel 9–12","Visão final"],["Oseias 1–7","Amor de Deus"],["Oseias 8–14","Retorno ao Senhor"],["Joel 1–3","O dia do Senhor"],["Amós 1–5","Julgamento; buscai o Senhor"],["Amós 6–9","Restauração prometida"],["Obadias; Jonas 1–4","Edom; Nínive"],["Miquéias 1–7","Julgamento e misericórdia"],["Naum; Habacuque","Nínive; fé em meio à dúvida"],["Sofonias; Ageu","O dia do Senhor"],["Zacarias 1–8","Visões noturnas"],["Zacarias 9–14","Restauração; o Messias"],["Malaquias 1–4","Purificação; o mensageiro"],["Mateus 1–4","Nascimento; tentação de Jesus"],["Mateus 5–7","Sermão da Montanha"],["Mateus 8–10","Milagres; os doze apóstolos"],["Mateus 11–13","Parábolas do reino"],["Mateus 14–17","Alimentação; transfiguração"],["Mateus 18–20","Perdão; riqueza"],["Mateus 21–23","Entrada em Jerusalém"],["Mateus 24–25","Sinais do fim"],["Mateus 26–28","Paixão, morte e ressurreição"],["Marcos 1–4","Início do ministério"],["Marcos 5–8","Milagres; missão"],["Marcos 9–12","Quem é Jesus?"],["Marcos 13–16","Paixão e ressurreição"],["Lucas 1–3","Nascimento de João e Jesus"],["Lucas 4–6","Ministério na Galileia"],["Lucas 7–9","Milagres e ensinamentos"],["Lucas 10–12","O bom samaritano"],["Lucas 13–16","Parábolas da graça"],["Lucas 17–19","Entrada em Jerusalém"],["Lucas 20–22","A última ceia"],["Lucas 23–24","Morte e ressurreição"],["João 1–4","O Verbo; primeiros discípulos"],["João 5–8","Milagres e debates"],["João 9–12","A luz do mundo; Lázaro"],["João 13–17","O discurso do adeus"],["João 18–21","Paixão; ressurreição; missão"],["Atos 1–4","Pentecostes; crescimento da Igreja"],["Atos 5–8","Estevão; Filipe"],["Atos 9–12","Paulo convertido; Pedro e Cornélio"],["Atos 13–15","Primeira viagem; concílio"],["Atos 16–19","Segunda e terceira viagem"],["Atos 20–24","Paulo preso em Jerusalém"],["Atos 25–28","Viagem a Roma"],["Romanos 1–5","Salvação pela graça"],["Romanos 6–10","Vida no Espírito"],["Romanos 11–16","Vida cristã"],["I Coríntios 1–7","Divisões; casamento"],["I Coríntios 8–13","Dons espirituais; o amor"],["I Coríntios 14–16","A ressurreição"],["II Coríntios 1–7","Consolação; ministério"],["II Coríntios 8–13","Generosidade; fraqueza"],["Gálatas 1–6","Graça, fé e fruto do Espírito"],["Efésios 1–6","Bênçãos espirituais; armadura"],["Filipenses; Colossenses","Alegria; supremacia de Cristo"],["I e II Tessalonicenses","A vinda do Senhor"],["I e II Timóteo","Instruções para a Igreja"],["Tito; Filemon","Sã doutrina; reconciliação"],["Hebreus 1–7","Jesus: superior; Sumo Sacerdote"],["Hebreus 8–13","Fé; perseverança; amor"],["Tiago 1–5","Fé que age; oração"],["I e II Pedro","Santidade; o dia do Senhor"],["I, II, III João; Judas","Luz, amor e fidelidade"],["Apocalipse 1–7","Cartas às igrejas; os selos"],["Apocalipse 8–14","Trombetas; a mulher e o dragão"],["Apocalipse 15–20","Taças; queda da Babilônia"],["Apocalipse 21–22","Nova Jerusalém; eternidade"],
+];
+while(BIBLE_PLAN.length<365) BIBLE_PLAN.push(["Revisão e meditação","Releia sua passagem favorita e medite nela"]);
+
+const MOODS=[
+  {emoji:'😔',label:'Abatido'},{emoji:'😟',label:'Difícil'},{emoji:'😐',label:'Neutro'},
+  {emoji:'🙂',label:'Firme'},{emoji:'😊',label:'Bem'},{emoji:'💪',label:'Forte'},{emoji:'🔥',label:'Vitorioso!'},
+];
+
+let currentUser=null,dataCache={};
+let currentMonth,currentYear,currentWeekStart,currentAnnualYear;
+let modalDateStr='',yearMonthModalIdx=-1,selectedMood='';
+
+function setSyncDot(s){const d=document.getElementById('sync-dot');if(!d)return;d.className='sync-dot'+(s==='syncing'?' syncing':s==='error'?' error':'');}
+async function loadAllData(){const{data}=await sb.from('planner_data').select('data_key,data_value').eq('user_id','hfe_'+currentUser);dataCache={};if(data)data.forEach(r=>{dataCache[r.data_key]=r.data_value;});}
+function getData(k,def=null){return dataCache.hasOwnProperty(k)?dataCache[k]:def;}
+function setData(k,v){dataCache[k]=v;setSyncDot('syncing');sb.from('planner_data').upsert({user_id:'hfe_'+currentUser,data_key:k,data_value:v,updated_at:new Date().toISOString()},{onConflict:'user_id,data_key'}).then(({error})=>{setSyncDot(error?'error':'ok');});}
+async function checkAuth(u){const{data}=await sb.from('planner_data').select('data_value').eq('user_id','_auth_hfe_').eq('data_key',u).maybeSingle();return data?data.data_value:null;}
+async function saveAuth(u,p){await sb.from('planner_data').upsert({user_id:'_auth_hfe_',data_key:u,data_value:{password:btoa(p)},updated_at:new Date().toISOString()},{onConflict:'user_id,data_key'});}
+
+function fmtDate(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function ptDate(s){const dt=new Date(s+'T00:00:00');return `${DAYS_LONG[dt.getDay()]}, ${dt.getDate()} de ${MONTHS[dt.getMonth()]} de ${dt.getFullYear()}`;}
+function dayOfYear(d){return Math.floor((d-new Date(d.getFullYear(),0,0))/86400000);}
+function showSaveMsg(id){const el=document.getElementById(id);if(!el)return;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200);}
+
+function showRegister(){document.getElementById('form-login').style.display='none';document.getElementById('form-register').style.display='block';document.getElementById('login-error').style.display='none';}
+function showLogin(){document.getElementById('form-register').style.display='none';document.getElementById('form-login').style.display='block';document.getElementById('login-error').style.display='none';}
+function showErr(msg){const el=document.getElementById('login-error');el.textContent=msg;el.style.display='block';}
+function setBtnLoading(id,loading,label){const b=document.getElementById(id);b.disabled=loading;b.textContent=loading?'Aguarde...':label;}
+
+async function doRegister(){
+  const user=document.getElementById('reg-user').value.trim();
+  const pass=document.getElementById('reg-pass').value;
+  const pass2=document.getElementById('reg-pass2').value;
+  if(!user||!pass){showErr('Preencha todos os campos');return;}
+  if(pass!==pass2){showErr('As senhas não conferem');return;}
+  setBtnLoading('btn-register',true,'Criar meu planner ⚔️');
+  const exists=await checkAuth(user);
+  if(exists){showErr('Esse usuário já existe');setBtnLoading('btn-register',false,'Criar meu planner ⚔️');return;}
+  await saveAuth(user,pass);
+  await enterApp(user);
+  setTimeout(()=>{if(deferredInstallPrompt){const btn=document.getElementById('btn-install');if(btn)btn.style.display='flex';}},1000);
+}
+async function doLogin(){
+  const user=document.getElementById('login-user').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  if(!user||!pass){showErr('Preencha todos os campos');return;}
+  setBtnLoading('btn-login',true,'Entrar ✝️');
+  const a=await checkAuth(user);
+  if(!a||a.password!==btoa(pass)){showErr('Usuário ou senha incorretos');setBtnLoading('btn-login',false,'Entrar ✝️');return;}
+  await enterApp(user);
+}
+async function enterApp(user){
+  currentUser=user;sessionStorage.setItem('planner_hfe_session',user);
+  await loadAllData();
+  await checkTrial();
+  if(document.getElementById('trial-screen').style.display==='flex') return;
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('header-username').textContent='✝️ '+user;
+  const now=new Date();currentMonth=now.getMonth();currentYear=now.getFullYear();currentAnnualYear=now.getFullYear();currentWeekStart=getMonday(now);
+  initDiary();
+}
+function doLogout(){sessionStorage.removeItem('planner_hfe_session');currentUser=null;dataCache={};document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-user').value='';document.getElementById('login-pass').value='';document.getElementById('login-error').style.display='none';setBtnLoading('btn-login',false,'Entrar ✝️');}
+
+(async function checkSession(){const s=sessionStorage.getItem('planner_hfe_session');if(s){currentUser=s;document.getElementById('loading-screen').style.display='flex';await loadAllData();document.getElementById('loading-screen').style.display='none';document.getElementById('app').style.display='block';document.getElementById('header-username').textContent='✝️ '+s;const now=new Date();currentMonth=now.getMonth();currentYear=now.getFullYear();currentAnnualYear=now.getFullYear();currentWeekStart=getMonday(now);initDiary();}else{document.getElementById('loading-screen').style.display='none';document.getElementById('login-screen').style.display='flex';}})();
+
+function showSection(name,btn){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('section-'+name).classList.add('active');if(btn)btn.classList.add('active');if(name==='weekly')renderWeek();if(name==='monthly')renderCalendar();if(name==='annual')renderAnnual();}
+
+function initDiary(){const now=new Date();const ds=fmtDate(now.getFullYear(),now.getMonth(),now.getDate());document.getElementById('diary-date').value=ds;document.getElementById('diary-today-date').textContent=ptDate(ds);buildHourSlots();buildMoodThermometer();renderDevotion(now);renderLouvor(now);renderBiblePlan(now);loadDiary();}
+
+function buildHourSlots(){const c=document.getElementById('diary-hours');c.innerHTML='';HOURS.forEach(h=>{const s=document.createElement('div');s.className='hour-slot-v';s.innerHTML=`<div class="hour-label-v">${h}</div><input class="hour-input-v" type="text" data-hour="${h}" placeholder="...">`;c.appendChild(s);});c.querySelectorAll('.hour-input-v').forEach(inp=>inp.addEventListener('input',autoSaveDiary));}
+
+function buildMoodThermometer(){const c=document.getElementById('mood-thermometer');c.innerHTML='';MOODS.forEach(m=>{const btn=document.createElement('button');btn.className='mood-item';btn.dataset.mood=m.emoji;btn.innerHTML=`${m.emoji}<span class="mood-label">${m.label}</span>`;btn.onclick=()=>{document.querySelectorAll('.mood-item').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');selectedMood=m.emoji;document.getElementById('mood-selected-label').textContent='Espírito: '+m.emoji+' '+m.label;};c.appendChild(btn);});}
+
+function renderDevotion(date){const d=DEVOTIONS[dayOfYear(date)%DEVOTIONS.length];document.getElementById('devotion-ref').textContent=d.ref;document.getElementById('devotion-verse').textContent=d.verse;document.getElementById('devotion-reflection').textContent=d.reflection;}
+function renderLouvor(date){const l=LOUVORES[dayOfYear(date)%LOUVORES.length];document.getElementById('louvor-verse').textContent=l.verse;document.getElementById('louvor-ref').textContent=l.ref;}
+function renderBiblePlan(date){const doy=dayOfYear(date);const plan=BIBLE_PLAN[Math.min(doy-1,364)];document.getElementById('bible-day-badge').textContent='DIA '+doy;document.getElementById('bible-progress-pct').textContent=Math.round((doy/365)*100)+'% da Bíblia concluída';document.getElementById('bible-reading-text').textContent='📖 '+plan[0];document.getElementById('bible-reading-desc').textContent=plan[1];const checks=getData('bible_checks',{});document.getElementById('bible-done').checked=!!(checks[document.getElementById('diary-date').value]);}
+
+function loadDiary(){const dateStr=document.getElementById('diary-date').value;if(!dateStr)return;const dt=new Date(dateStr+'T00:00:00');document.getElementById('diary-date-title').textContent=ptDate(dateStr);document.getElementById('diary-today-date').textContent=ptDate(dateStr);renderDevotion(dt);renderLouvor(dt);renderBiblePlan(dt);const diaries=getData('diary',{});const entry=diaries[dateStr]||{};document.getElementById('diary-text').value=entry.text||'';document.getElementById('diary-gratitude').value=entry.gratitude||'';document.getElementById('diary-prayer').value=entry.prayer||'';document.getElementById('diary-goal').value=entry.goal||'';selectedMood=entry.mood||'';document.querySelectorAll('.mood-item').forEach(b=>b.classList.toggle('selected',b.dataset.mood===selectedMood));document.getElementById('mood-selected-label').textContent=selectedMood?'Espírito: '+selectedMood+' '+(MOODS.find(x=>x.emoji===selectedMood)||{label:''}).label:'';buildHourSlots();const hours=entry.hours||{};document.querySelectorAll('.hour-input-v').forEach(inp=>{inp.value=hours[inp.dataset.hour]||'';});}
+
+function saveDiary(){const dateStr=document.getElementById('diary-date').value;if(!dateStr)return;const hours={};document.querySelectorAll('.hour-input-v').forEach(inp=>{if(inp.value.trim())hours[inp.dataset.hour]=inp.value.trim();});const diaries=getData('diary',{});diaries[dateStr]={text:document.getElementById('diary-text').value,gratitude:document.getElementById('diary-gratitude').value,prayer:document.getElementById('diary-prayer').value,goal:document.getElementById('diary-goal').value,mood:selectedMood,hours};setData('diary',diaries);}
+function saveBibleCheck(){const dateStr=document.getElementById('diary-date').value;const checks=getData('bible_checks',{});checks[dateStr]=document.getElementById('bible-done').checked;setData('bible_checks',checks);}
+
+function getMonday(date){const d=new Date(date),day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);d.setDate(diff);d.setHours(0,0,0,0);return d;}
+function renderWeek(){const monday=new Date(currentWeekStart);const sunday=new Date(monday);sunday.setDate(sunday.getDate()+6);const fmt=d=>`${d.getDate()}/${d.getMonth()+1}`;document.getElementById('week-title').textContent=`${fmt(monday)} – ${fmt(sunday)}`;const weekKey=fmtDate(monday.getFullYear(),monday.getMonth(),monday.getDate());document.getElementById('week-objectives').value=(getData('week_objectives',{})[weekKey])||'';const vIdx=Math.floor(monday.getTime()/604800000)%WEEK_VERSES.length;document.getElementById('week-verse-text').textContent=WEEK_VERSES[vIdx].text;document.getElementById('week-verse-ref').textContent=WEEK_VERSES[vIdx].ref;const grid=document.getElementById('week-grid');grid.innerHTML='';const today=new Date();today.setHours(0,0,0,0);const weekNotes=getData('week_notes',{});for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(d.getDate()+i);const dateStr=fmtDate(d.getFullYear(),d.getMonth(),d.getDate());const isToday=d.getTime()===today.getTime();const card=document.createElement('div');card.className='week-day-card'+(isToday?' today-card':'');card.innerHTML=`<div class="week-day-name">${DAYS_SHORT[d.getDay()]}</div><div class="week-day-num">${d.getDate()}</div><textarea class="week-task-input" data-date="${dateStr}" placeholder="Planos do dia">${weekNotes[dateStr]||''}</textarea>`;card.querySelector('textarea').addEventListener('input',autoSaveWeekNotes);grid.appendChild(card);}}
+function saveWeekObjectives(){const monday=new Date(currentWeekStart);const weekKey=fmtDate(monday.getFullYear(),monday.getMonth(),monday.getDate());const o=getData('week_objectives',{});o[weekKey]=document.getElementById('week-objectives').value;setData('week_objectives',o);}
+function saveWeekNotes(){const n=getData('week_notes',{});document.querySelectorAll('.week-task-input').forEach(ta=>{n[ta.dataset.date]=ta.value;});setData('week_notes',n);}
+function prevWeek(){currentWeekStart.setDate(currentWeekStart.getDate()-7);renderWeek();}
+function nextWeek(){currentWeekStart.setDate(currentWeekStart.getDate()+7);renderWeek();}
+
+function renderCalendar(){document.getElementById('month-title').textContent=MONTHS[currentMonth]+' '+currentYear;const daysEl=document.getElementById('cal-days');daysEl.innerHTML='';const first=new Date(currentYear,currentMonth,1);const lastDay=new Date(currentYear,currentMonth+1,0).getDate();const startDow=first.getDay();const today=new Date();const events=getData('events',{});const prevLast=new Date(currentYear,currentMonth,0).getDate();for(let i=0;i<startDow;i++){const d=document.createElement('div');d.className='cal-day other-month';d.textContent=prevLast-startDow+1+i;daysEl.appendChild(d);}for(let d=1;d<=lastDay;d++){const el=document.createElement('div');el.className='cal-day';el.textContent=d;const dateStr=fmtDate(currentYear,currentMonth,d);if(d===today.getDate()&&currentMonth===today.getMonth()&&currentYear===today.getFullYear())el.classList.add('today');if(events[dateStr]&&events[dateStr].length>0)el.classList.add('has-event');el.onclick=()=>openDayModal(currentYear,currentMonth,d);daysEl.appendChild(el);}const total=startDow+lastDay,rem=total%7===0?0:7-(total%7);for(let i=1;i<=rem;i++){const d=document.createElement('div');d.className='cal-day other-month';d.textContent=i;daysEl.appendChild(d);}const monthKey=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;const mn=(getData('month_notes',{})[monthKey])||{};document.getElementById('month-goals').value=mn.goals||'';document.getElementById('month-spiritual').value=mn.spiritual||'';document.getElementById('month-gratitude').value=mn.gratitude||'';document.getElementById('month-finance').value=mn.finance||'';}
+function prevMonth(){currentMonth--;if(currentMonth<0){currentMonth=11;currentYear--;}renderCalendar();}
+function nextMonth(){currentMonth++;if(currentMonth>11){currentMonth=0;currentYear++;}renderCalendar();}
+function saveMonthNotes(){const monthKey=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;const n=getData('month_notes',{});n[monthKey]={goals:document.getElementById('month-goals').value,spiritual:document.getElementById('month-spiritual').value,gratitude:document.getElementById('month-gratitude').value,finance:document.getElementById('month-finance').value};setData('month_notes',n);}
+
+function openDayModal(y,m,d){modalDateStr=fmtDate(y,m,d);document.getElementById('modal-title').textContent=`${d} de ${MONTHS[m]}`;document.getElementById('modal-date-sub').textContent=DAYS_LONG[new Date(y,m,d).getDay()];renderEventList();document.getElementById('modal-note').value=(getData('day_notes',{})[modalDateStr])||'';document.getElementById('modal-overlay').classList.add('open');setTimeout(()=>document.getElementById('new-event-input').focus(),100);}
+function closeModal(){persistModalNote();document.getElementById('modal-overlay').classList.remove('open');renderCalendar();}
+function closeModalOuter(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+function renderEventList(){const events=getData('events',{}),list=events[modalDateStr]||[];const el=document.getElementById('event-list');el.innerHTML='';if(!list.length){el.innerHTML='<p style="color:var(--text-light);font-size:.84rem;text-align:center;padding:8px;">Nenhum evento ainda</p>';return;}list.forEach((ev,i)=>{const item=document.createElement('div');item.className='event-item';item.innerHTML=`<span>◆ ${ev}</span><button class="btn-del-event" onclick="delEvent(${i})">✕</button>`;el.appendChild(item);});}
+function addEvent(){const input=document.getElementById('new-event-input'),text=input.value.trim();if(!text)return;const events=getData('events',{});if(!events[modalDateStr])events[modalDateStr]=[];events[modalDateStr].push(text);setData('events',events);input.value='';renderEventList();}
+function delEvent(i){const events=getData('events',{});if(events[modalDateStr]){events[modalDateStr].splice(i,1);setData('events',events);renderEventList();}}
+function persistModalNote(){const n=getData('day_notes',{});n[modalDateStr]=document.getElementById('modal-note').value;setData('day_notes',n);}
+function saveModalNote(){persistModalNote();closeModal();}
+
+function renderAnnual(){document.getElementById('year-title').textContent=currentAnnualYear;const grid=document.getElementById('year-months-grid');grid.innerHTML='';const annualNotes=getData('annual_months',{});MONTHS.forEach((m,i)=>{const key=`${currentAnnualYear}-${String(i+1).padStart(2,'0')}`,note=annualNotes[key]||'';const card=document.createElement('div');card.className='year-month-card'+(note?' has-note':'');card.innerHTML=`<div class="ymcard-name">◆ ${m}</div><div class="ymcard-preview">${note||'Clique para planejar...'}</div>`;card.onclick=()=>openYearMonthModal(i);grid.appendChild(card);});const ag=(getData('annual_goals',{})[currentAnnualYear])||{};document.getElementById('year-dreams').value=ag.dreams||'';document.getElementById('year-spiritual').value=ag.spiritual||'';document.getElementById('year-finance').value=ag.finance||'';document.getElementById('year-family').value=ag.family||'';}
+function prevYear(){currentAnnualYear--;renderAnnual();}
+function nextYear(){currentAnnualYear++;renderAnnual();}
+function openYearMonthModal(idx){yearMonthModalIdx=idx;document.getElementById('ym-modal-title').textContent=MONTHS[idx]+' '+currentAnnualYear;const key=`${currentAnnualYear}-${String(idx+1).padStart(2,'0')}`;document.getElementById('ym-modal-ta').value=(getData('annual_months',{})[key])||'';document.getElementById('year-month-modal').classList.add('open');setTimeout(()=>document.getElementById('ym-modal-ta').focus(),100);}
+function closeYearModal(e){if(!e||e.target===document.getElementById('year-month-modal')){persistYearMonth();document.getElementById('year-month-modal').classList.remove('open');renderAnnual();}}
+function persistYearMonth(){const key=`${currentAnnualYear}-${String(yearMonthModalIdx+1).padStart(2,'0')}`;const n=getData('annual_months',{});n[key]=document.getElementById('ym-modal-ta').value;setData('annual_months',n);}
+function saveYearMonth(){persistYearMonth();}
+function saveAnnual(){const g=getData('annual_goals',{});g[currentAnnualYear]={dreams:document.getElementById('year-dreams').value,spiritual:document.getElementById('year-spiritual').value,finance:document.getElementById('year-finance').value,family:document.getElementById('year-family').value};setData('annual_goals',g);}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none'){if(document.getElementById('form-login').style.display!=='none')doLogin();else doRegister();}});
+
+// AUTO-SAVE
+function debounce(fn,ms=1400){let t;return(...args)=>{clearTimeout(t);t=setTimeout(()=>fn(...args),ms);};}
+function showAutoToast(){const el=document.getElementById('autosave-toast');if(!el)return;el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},2000);}
+const autoSaveDiary=debounce(()=>{saveDiary();showAutoToast();});
+const autoSaveWeekObj=debounce(()=>{saveWeekObjectives();showAutoToast();});
+const autoSaveWeekNotes=debounce(()=>{saveWeekNotes();showAutoToast();});
+const autoSaveMonth=debounce(()=>{saveMonthNotes();showAutoToast();});
+const autoSaveAnnual=debounce(()=>{saveAnnual();showAutoToast();});
+const autoSaveModalNote=debounce(()=>{persistModalNote();showAutoToast();});
+const autoSaveYearMonth=debounce(()=>{persistYearMonth();showAutoToast();});
+
+// PWA
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;const btn=document.getElementById('btn-install');if(btn)btn.style.display='inline-block';});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const btn=document.getElementById('btn-install');if(btn)btn.style.display='none';});
+function installApp(){if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();deferredInstallPrompt.userChoice.then(()=>{deferredInstallPrompt=null;const btn=document.getElementById('btn-install');if(btn)btn.style.display='none';});}
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+
+// ========================
+// TRIAL — 7 DIAS GRATUITOS
+// ========================
+async function checkTrial(){
+  let trialStart=getData('trial_start',null);
+  if(!trialStart){
+    setData('trial_start',new Date().toISOString());
+    return;
+  }
+  const days=(new Date()-new Date(trialStart))/(1000*60*60*24);
+  if(days>7) showTrialExpired();
+}
+function showTrialExpired(){
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('trial-screen').style.display='flex';
+}
+</script>
+
+<!-- ⚔️ TELA DE TRIAL EXPIRADO -->
+<div id="trial-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:linear-gradient(145deg,#0f2235 0%,#1e3d5c 50%,#1e4d7a 100%);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;font-family:'Raleway',sans-serif;">
+  <div style="font-size:3.5rem;margin-bottom:16px;">⚔️</div>
+  <div style="font-family:'Cinzel',serif;font-size:2.6rem;color:white;margin-bottom:8px;letter-spacing:2px;">Seu teste encerrou</div>
+  <div style="font-size:1rem;color:rgba(255,255,255,0.8);font-style:italic;margin-bottom:36px;line-height:1.7;">"Sê fiel até à morte, e dar-te-ei a coroa da vida."<br><span style="font-size:.85rem;opacity:.75;">— Apocalipse 2:10</span></div>
+
+  <div style="background:rgba(255,255,255,0.07);backdrop-filter:blur(14px);border:1px solid rgba(201,148,26,0.35);border-radius:20px;padding:36px 40px;max-width:500px;width:100%;margin-bottom:24px;">
+    <div style="font-size:.78rem;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">7 dias de acesso gratuito encerrados</div>
+    <div style="font-family:'Cinzel',serif;font-size:1.7rem;color:#c9941a;margin-bottom:18px;letter-spacing:1px;">Continue sua jornada, homem de fé ✝️</div>
+    <div style="font-size:.9rem;color:rgba(255,255,255,0.82);line-height:1.8;margin-bottom:22px;">
+      Seus dados estão salvos e seguros. 💾<br>
+      Garanta o acesso vitalício e siga em frente!
+    </div>
+    <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:22px;">
+      <div style="background:rgba(201,148,26,0.15);border:1px solid rgba(201,148,26,0.4);border-radius:50px;padding:8px 16px;font-size:.8rem;color:#c9941a;font-weight:700;">✅ Acesso vitalício</div>
+      <div style="background:rgba(201,148,26,0.15);border:1px solid rgba(201,148,26,0.4);border-radius:50px;padding:8px 16px;font-size:.8rem;color:#c9941a;font-weight:700;">✅ Sem mensalidade</div>
+      <div style="background:rgba(201,148,26,0.15);border:1px solid rgba(201,148,26,0.4);border-radius:50px;padding:8px 16px;font-size:.8rem;color:#c9941a;font-weight:700;">✅ Dados salvos</div>
+    </div>
+    <div style="font-family:'Cinzel',serif;font-size:3rem;color:#c9941a;font-weight:700;line-height:1;">R$ 49,99</div>
+    <div style="font-size:.78rem;color:rgba(255,255,255,0.5);margin-bottom:26px;">pagamento único · acesso para sempre</div>
+    <a href="https://wa.me/5562991225961?text=Olá!%20Quero%20comprar%20o%20acesso%20vitalício%20do%20Planner%20Homem%20de%20Fé%20⚔️%20Vi%20pelo%20teste%20gratuito!" target="_blank"
+       style="display:flex;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:white;text-decoration:none;padding:18px 32px;border-radius:8px;font-size:1.05rem;font-weight:700;box-shadow:0 8px 25px rgba(0,0,0,0.3);letter-spacing:.5px;">
+      <span style="font-size:1.4rem;">💬</span> Quero meu acesso vitalício!
+    </a>
+  </div>
+  <div style="font-size:.78rem;color:rgba(255,255,255,0.4);">Atendimento no WhatsApp · Resposta rápida ⚔️</div>
+</div>
+
+</body>
+</html>
