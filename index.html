@@ -23,20 +23,6 @@ body{font-family:'Raleway',sans-serif;background:linear-gradient(135deg,#eef3f8 
 .trial-days{background:var(--amber);color:#1a0a00;border-radius:6px;padding:3px 12px;font-weight:700;font-size:.82rem;letter-spacing:.5px;}
 .trial-cta{background:var(--amber);color:var(--navy-dark);border:none;padding:6px 14px;border-radius:6px;font-family:'Raleway',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;text-decoration:none;letter-spacing:.5px;}
 
-/* EXTENSION SCREEN */
-#extension-screen{display:none;position:fixed;inset:0;background:linear-gradient(145deg,#0f2235,#1e3d5c);z-index:999;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;overflow-y:auto;}
-.extension-card{background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);border:1px solid rgba(201,148,26,0.4);border-radius:20px;padding:36px;max-width:460px;width:100%;position:relative;overflow:hidden;}
-.extension-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--navy-dark),var(--amber),var(--steel),var(--amber));}
-.extension-icon{font-size:4rem;margin-bottom:12px;}
-.extension-title{font-family:'Cinzel',serif;font-size:1.9rem;color:white;margin-bottom:8px;letter-spacing:2px;}
-.extension-sub{color:rgba(255,255,255,0.75);font-size:.9rem;line-height:1.7;margin-bottom:24px;}
-.extension-highlight{background:rgba(201,148,26,0.12);border:1px solid rgba(201,148,26,0.5);border-radius:14px;padding:18px;margin-bottom:24px;}
-.extension-highlight p{font-family:'Cinzel',serif;font-size:1.4rem;color:var(--amber);}
-.extension-highlight small{font-size:.78rem;color:rgba(255,255,255,0.6);}
-.btn-extend{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px;background:linear-gradient(135deg,var(--amber),#e0a820);color:var(--navy-dark);border:none;border-radius:10px;font-family:'Raleway',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:14px;transition:all .2s;letter-spacing:.5px;}
-.btn-extend:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(201,148,26,0.4);}
-.btn-buy-link{background:none;border:none;color:rgba(255,255,255,0.5);font-family:'Raleway',sans-serif;font-size:.85rem;cursor:pointer;text-decoration:underline;}
-
 /* EXPIRED SCREEN */
 #expired-screen{display:none;position:fixed;inset:0;background:linear-gradient(145deg,#0f2235,#1e3d5c);z-index:999;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;overflow-y:auto;}
 .expired-card{background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);border:1px solid rgba(201,148,26,0.4);border-radius:20px;padding:36px;max-width:460px;width:100%;position:relative;overflow:hidden;}
@@ -186,20 +172,6 @@ body{font-family:'Raleway',sans-serif;background:linear-gradient(135deg,#eef3f8 
 </div>
 
 <!-- EXPIRED SCREEN -->
-<div id="extension-screen">
-  <div class="extension-card">
-    <div class="extension-icon">⚔️</div>
-    <div class="extension-title">SEU TESTE ENCERROU</div>
-    <div class="extension-sub">Mas o Senhor é misericordioso, e queremos abençoar você!<br>Que tal <strong style="color:var(--amber);">mais 7 dias completamente grátis</strong> para continuar caminhando com fé e propósito?</div>
-    <div class="extension-highlight">
-      <p>🎁 PRESENTE ESPECIAL</p>
-      <small>7 dias extras • sem cartão • sem compromisso</small>
-    </div>
-    <button class="btn-extend" onclick="extendTrial()">✅ SIM! QUERO MAIS 7 DIAS GRÁTIS</button>
-    <button class="btn-buy-link" onclick="showExpired()">Prefiro adquirir o acesso vitalício agora →</button>
-  </div>
-</div>
-
 <div id="expired-screen">
   <div class="expired-card">
     <div class="expired-icon">⚔️</div>
@@ -359,41 +331,21 @@ body{font-family:'Raleway',sans-serif;background:linear-gradient(135deg,#eef3f8 
 <script>
 // TRIAL
 const TRIAL_KEY='hfe_trial_start';
-const EXTEND_KEY='hfe_trial_extended';
 function initTrial(){
   let start=localStorage.getItem(TRIAL_KEY);
   if(!start){start=Date.now().toString();localStorage.setItem(TRIAL_KEY,start);}
-  const extended=localStorage.getItem(EXTEND_KEY)==='1';
-  const limit=extended?14:7;
   const daysPassed=Math.floor((Date.now()-parseInt(start))/(1000*60*60*24));
-  const daysLeft=limit-daysPassed;
-  if(daysLeft<=0){
-    if(!extended){showExtension();}
-    else{showExpired();}
-  } else {
+  const daysLeft=7-daysPassed;
+  if(daysLeft<=0){showExpired();}
+  else{
     const badge=document.getElementById('trial-days-badge');
     badge.textContent=daysLeft===1?'1 DIA RESTANTE':`${daysLeft} DIAS RESTANTES`;
     if(daysLeft<=2)badge.style.background='#e53935';
   }
 }
-function showExtension(){
-  document.getElementById('app').style.display='none';
-  document.getElementById('trial-banner').style.display='none';
-  document.getElementById('extension-screen').style.display='flex';
-}
-function extendTrial(){
-  localStorage.setItem(EXTEND_KEY,'1');
-  document.getElementById('extension-screen').style.display='none';
-  document.getElementById('app').style.display='block';
-  document.getElementById('trial-banner').style.display='flex';
-  const badge=document.getElementById('trial-days-badge');
-  badge.textContent='7 DIAS RESTANTES';
-  badge.style.background='';
-}
 function showExpired(){
   document.getElementById('app').style.display='none';
   document.getElementById('trial-banner').style.display='none';
-  document.getElementById('extension-screen').style.display='none';
   document.getElementById('expired-screen').style.display='flex';
 }
 
